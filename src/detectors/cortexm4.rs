@@ -1,9 +1,9 @@
-use crate::comparators::{Exact16Comparator, Exact32Comparator, PopCount32Comparator, TwosComplement16Comparator, TwosComplement32Comparator};
+use crate::comparators::{
+    Exact16Comparator, Exact32Comparator, PopCount32Comparator, TwosComplement16Comparator,
+    TwosComplement32Comparator,
+};
 
 use super::{Detector, Single16Detector, Single32Detector};
-
-pub struct CortexmDetector<const TOL: usize> {
-}
 
 // Output from benchmark
 // single16;exact;2288
@@ -80,15 +80,55 @@ macro_rules! impl_sync {
 }
 
 impl_sync!(sync16_tol0<u16>, Single16Detector, Exact16Comparator::<SW>);
-impl_sync!(sync16_tol1<u16>, Single16Detector, TwosComplement16Comparator::<SW, 1>);
-impl_sync!(sync16_tol2<u16>, Single16Detector, TwosComplement16Comparator::<SW, 2>);
-impl_sync!(sync16_tol3<u16>, Single16Detector, TwosComplement16Comparator::<SW, 3>);
-impl_sync!(sync16_tol4<u16>, Single16Detector, TwosComplement16Comparator::<SW, 4>);
+impl_sync!(
+    sync16_tol1<u16>,
+    Single16Detector,
+    TwosComplement16Comparator::<SW, 1>
+);
+impl_sync!(
+    sync16_tol2<u16>,
+    Single16Detector,
+    TwosComplement16Comparator::<SW, 2>
+);
+impl_sync!(
+    sync16_tol3<u16>,
+    Single16Detector,
+    TwosComplement16Comparator::<SW, 3>
+);
+impl_sync!(
+    sync16_tol4<u16>,
+    Single16Detector,
+    TwosComplement16Comparator::<SW, 4>
+);
 
 impl_sync!(sync32_tol0<u32>, Single32Detector, Exact32Comparator::<SW>);
-impl_sync!(sync32_tol1<u32>, Single32Detector, TwosComplement32Comparator::<SW, 1>);
-impl_sync!(sync32_tol2<u32>, Single32Detector, TwosComplement32Comparator::<SW, 2>);
-impl_sync!(sync32_tol3<u32>, Single32Detector, TwosComplement32Comparator::<SW, 3>);
-impl_sync!(sync32_tol4<u32>, Single32Detector, TwosComplement32Comparator::<SW, 4>);
-impl_sync!(sync32_tol5<u32>, Single32Detector, TwosComplement32Comparator::<SW, 5>);
-impl_sync!(sync32_tol6<u32>, Single32Detector, PopCount32Comparator::<SW, 6>);
+impl_sync!(
+    sync32_tol1<u32>,
+    Single32Detector,
+    TwosComplement32Comparator::<SW, 1>
+);
+impl_sync!(
+    sync32_tol2<u32>,
+    Single32Detector,
+    TwosComplement32Comparator::<SW, 2>
+);
+impl_sync!(
+    sync32_tol3<u32>,
+    Single32Detector,
+    TwosComplement32Comparator::<SW, 3>
+);
+impl_sync!(
+    sync32_tol4<u32>,
+    Single32Detector,
+    TwosComplement32Comparator::<SW, 4>
+);
+impl_sync!(
+    sync32_tol5<u32>,
+    Single32Detector,
+    TwosComplement32Comparator::<SW, 5>
+);
+impl_sync!(
+    sync32_tol6<u32>,
+    Single32Detector,
+    PopCount32Comparator::<SW, 6>
+);

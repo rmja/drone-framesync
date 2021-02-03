@@ -33,7 +33,7 @@ pub struct Single32Detector<C: Comparator<u32>> {
 impl<C: Comparator<u32>> Single32Detector<C> {
     pub const fn new() -> Self {
         Self {
-            comparator: PhantomData
+            comparator: PhantomData,
         }
     }
 }
@@ -52,7 +52,7 @@ impl<C: Comparator<u32>> Detector<u32> for Single32Detector<C> {
             u32: WindowParts32 {
                 first: u32::from_be(block),
                 second: 0,
-            }
+            },
         };
 
         // Iterate for each of the next 32 bit blocks one at a time.
@@ -79,8 +79,7 @@ impl<C: Comparator<u32>> Detector<u32> for Single32Detector<C> {
         // Test the last block.
         if C::is_match(unsafe { current.u32.first }) {
             Some(haystack.len() * 8 - 32)
-        }
-        else {
+        } else {
             None
         }
     }
@@ -92,20 +91,11 @@ mod tests {
 
     use super::*;
     use bitvec::prelude::*;
-    
+
     #[test]
     fn position() {
-        let detector = Single32Detector::<Exact32Comparator::<0xFFFFFFFF>>::new();
-        let lengths = [
-            4 * 8,
-            8 * 8,
-            12 * 8,
-            16 * 8,
-            20 * 8,
-            24 * 8,
-            28 * 8,
-            32 * 8,
-        ];
+        let detector = Single32Detector::<Exact32Comparator<0xFFFFFFFF>>::new();
+        let lengths = [4 * 8, 8 * 8, 12 * 8, 16 * 8, 20 * 8, 24 * 8, 28 * 8, 32 * 8];
 
         for length in lengths.iter().copied() {
             for position in 0..=length - 32 {

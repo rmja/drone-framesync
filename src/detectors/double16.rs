@@ -54,7 +54,7 @@ pub struct Double16Detector<C: Comparator<u16>> {
 impl<C: Comparator<u16>> Double16Detector<C> {
     pub const fn new() -> Self {
         Self {
-            comparator: PhantomData
+            comparator: PhantomData,
         }
     }
 }
@@ -73,7 +73,7 @@ impl<C: Comparator<u16>> Detector<u16> for Double16Detector<C> {
             u32: WindowParts32 {
                 first: u32::from_be(block),
                 second: 0,
-            }
+            },
         };
 
         // Iterate for each of the next 32 bit blocks one at a time.
@@ -111,20 +111,11 @@ mod tests {
 
     use super::*;
     use bitvec::prelude::*;
-    
+
     #[test]
     fn position() {
-        let detector = Double16Detector::<Exact16Comparator::<0xFFFF>>::new();
-        let lengths = [
-            4 * 8,
-            8 * 8,
-            12 * 8,
-            16 * 8,
-            20 * 8,
-            24 * 8,
-            28 * 8,
-            32 * 8,
-        ];
+        let detector = Double16Detector::<Exact16Comparator<0xFFFF>>::new();
+        let lengths = [4 * 8, 8 * 8, 12 * 8, 16 * 8, 20 * 8, 24 * 8, 28 * 8, 32 * 8];
 
         for length in lengths.iter().copied() {
             for position in 0..=length - 16 {

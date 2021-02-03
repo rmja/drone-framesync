@@ -5,7 +5,7 @@ pub struct PopCount32Comparator<const SW: u32, const THR: u32>;
 
 impl<const SW: u16, const THR: u32> Comparator<u16> for PopCount16Comparator<SW, THR> {
     const SYNCWORD: u16 = SW;
-    
+
     #[inline(always)]
     fn is_match(value: u16) -> bool {
         let r = value ^ Self::SYNCWORD;
@@ -16,7 +16,7 @@ impl<const SW: u16, const THR: u32> Comparator<u16> for PopCount16Comparator<SW,
 
 impl<const SW: u32, const THR: u32> Comparator<u32> for PopCount32Comparator<SW, THR> {
     const SYNCWORD: u32 = SW;
-    
+
     #[inline(always)]
     fn is_match(value: u32) -> bool {
         let r = value ^ Self::SYNCWORD;

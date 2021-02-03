@@ -1,8 +1,8 @@
 pub mod cortexm4;
-mod single16;
-mod single32;
 mod double16;
 mod double32;
+mod single16;
+mod single32;
 
 pub trait Detector<T> {
     const SYNCWORD: T;
@@ -13,8 +13,6 @@ pub trait Detector<T> {
 }
 
 pub use self::{
-    single16::Single16Detector,
+    double16::Double16Detector, double32::Double32Detector, single16::Single16Detector,
     single32::Single32Detector,
-    double16::Double16Detector,
-    double32::Double32Detector,
 };

@@ -33,7 +33,7 @@ pub struct Single16Detector<C: Comparator<u16>> {
 impl<C: Comparator<u16>> Single16Detector<C> {
     pub const fn new() -> Self {
         Self {
-            comparator: PhantomData
+            comparator: PhantomData,
         }
     }
 }
@@ -52,7 +52,7 @@ impl<C: Comparator<u16>> Detector<u16> for Single16Detector<C> {
             u16: WindowParts16 {
                 first: u16::from_be(block),
                 second: 0,
-            }
+            },
         };
 
         // Iterate for each of the next 16 bit blocks one at a time.
@@ -79,8 +79,7 @@ impl<C: Comparator<u16>> Detector<u16> for Single16Detector<C> {
         // Test the last block.
         if C::is_match(unsafe { current.u16.first }) {
             Some(haystack.len() * 8 - 16)
-        }
-        else {
+        } else {
             None
         }
     }
@@ -92,20 +91,11 @@ mod tests {
 
     use super::*;
     use bitvec::prelude::*;
-    
+
     #[test]
     fn position() {
-        let detector = Single16Detector::<Exact16Comparator::<0xFFFF>>::new();
-        let lengths = [
-            2 * 8,
-            4 * 8,
-            6 * 8,
-            8 * 8,
-            10 * 8,
-            12 * 8,
-            14 * 8,
-            16 * 8,
-        ];
+        let detector = Single16Detector::<Exact16Comparator<0xFFFF>>::new();
+        let lengths = [2 * 8, 4 * 8, 6 * 8, 8 * 8, 10 * 8, 12 * 8, 14 * 8, 16 * 8];
 
         for length in lengths.iter().copied() {
             for position in 0..=length - 16 {

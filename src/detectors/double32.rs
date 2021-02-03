@@ -33,7 +33,7 @@ pub struct Double32Detector<C: Comparator<u32>> {
 impl<C: Comparator<u32>> Double32Detector<C> {
     pub const fn new() -> Self {
         Self {
-            comparator: PhantomData
+            comparator: PhantomData,
         }
     }
 }
@@ -55,14 +55,14 @@ impl<C: Comparator<u32>> Detector<u32> for Double32Detector<C> {
         // Iterate for each of the next 32 bit blocks one at a time.
         for (index, block) in blocks {
             let next = Window {
-                u64: u64::from_be(block)
+                u64: u64::from_be(block),
             };
 
             let mut window = Window {
                 u32: WindowParts32 {
                     first: unsafe { current.u32.second },
                     second: unsafe { next.u32.first },
-                }
+                },
             };
 
             // Search the first 32+32 bits of the 64 bit window, one at a time.
@@ -95,16 +95,11 @@ mod tests {
 
     use super::*;
     use bitvec::prelude::*;
-    
+
     #[test]
     fn position() {
-        let detector = Double32Detector::<Exact32Comparator::<0xFFFFFFFF>>::new();
-        let lengths = [
-            8 * 8,
-            16 * 8,
-            24 * 8,
-            32 * 8,
-        ];
+        let detector = Double32Detector::<Exact32Comparator<0xFFFFFFFF>>::new();
+        let lengths = [8 * 8, 16 * 8, 24 * 8, 32 * 8];
 
         for length in lengths.iter().copied() {
             for position in 0..=length - 32 {
