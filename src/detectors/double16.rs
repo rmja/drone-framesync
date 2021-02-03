@@ -52,7 +52,7 @@ pub struct Double16Detector<C: Comparator<u16>> {
 }
 
 impl<C: Comparator<u16>> Double16Detector<C> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             comparator: PhantomData
         }

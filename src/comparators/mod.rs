@@ -29,3 +29,12 @@ impl<const SW: u32> Comparator<u32> for Exact32Comparator<SW> {
         value == Self::SYNCWORD
     }
 }
+
+pub use self::{
+    lzc::LeadingZeroCount16Comparator,
+    lzc::LeadingZeroCount32Comparator,
+    popcnt::PopCount16Comparator,
+    popcnt::PopCount32Comparator,
+    twoscmpl::TwosComplement16Comparator,
+    twoscmpl::TwosComplement32Comparator,
+};

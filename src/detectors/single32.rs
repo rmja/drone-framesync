@@ -31,7 +31,7 @@ pub struct Single32Detector<C: Comparator<u32>> {
 }
 
 impl<C: Comparator<u32>> Single32Detector<C> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             comparator: PhantomData
         }
