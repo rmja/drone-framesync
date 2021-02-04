@@ -1,4 +1,4 @@
-use core::{marker::PhantomData, mem::size_of};
+use core::marker::PhantomData;
 
 use crate::comparators::Comparator;
 
@@ -60,11 +60,10 @@ impl<C: Comparator<u16>> Double16Detector<C> {
 }
 
 impl<C: Comparator<u16>> Detector<u16> for Double16Detector<C> {
+    type Block = u32;
     const SYNCWORD: u16 = C::SYNCWORD;
 
-    fn position(&self, haystack: &[u8]) -> Option<usize> {
-        assert_eq!(0, haystack.len() % size_of::<u32>());
-        let haystack: &[u32] = unsafe { core::mem::transmute(haystack) };
+    fn position_in_blocks(&self, haystack: &[u32]) -> Option<usize> {
         let mut blocks = haystack.iter().copied().enumerate();
 
         // Load the first 32 bit block.
@@ -126,11 +125,12 @@ mod tests {
                     haystack.set(position + i, true);
                 }
 
-                let found = detector.position(haystack.as_raw_slice());
+                let (found, consumed) = unsafe { detector.position(haystack.as_raw_slice()) };
 
                 println!("Found {:?} in {:?}", found, haystack);
 
                 assert_eq!(Some(position), found);
+                assert_eq!((length - 16)/8, consumed);
             }
         }
     }
