@@ -11,7 +11,7 @@ For Cortex-M4, the fastest algorithms have been determined and are selected base
 
 ```rust
 
-use drone_framesync::detectors::cortexm4;
+use drone_framesync::detectors::{cortexm4, Detector};
 
 // Get the fastest detector for the 16 bit syncword 0xFFFF with an allowed tolerance of 2 bits.
 let detector = cortexm4::sync16_tol2::<0xFFFF>();
