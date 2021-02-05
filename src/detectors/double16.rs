@@ -63,8 +63,8 @@ impl<C: Comparator<u16>> Detector<u16> for Double16Detector<C> {
     type Block = u32;
     const SYNCWORD: u16 = C::SYNCWORD;
 
-    fn position_in_blocks(&self, haystack: &[u32]) -> Option<usize> {
-        let mut blocks = haystack.iter().copied().enumerate();
+    fn position_in_blocks<I: Iterator<Item = Self::Block>>(&self, haystack: I) -> Option<usize> {
+        let mut blocks = haystack.enumerate();
 
         // Load the first 32 bit block.
         let (_, block) = blocks.next()?;
@@ -124,6 +124,8 @@ mod tests {
                 for i in 0..16 {
                     haystack.set(position + i, true);
                 }
+
+                let asd = haystack.into_vec();
 
                 let (found, consumed) = unsafe { detector.position(haystack.as_raw_slice()) };
 
