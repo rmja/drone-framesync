@@ -43,7 +43,7 @@ impl<C: Comparator<u32>> Detector<u32> for Double32Detector<C> {
     const SYNCWORD: u32 = C::SYNCWORD;
 
     fn from_slice(slice: &[u8]) -> Self::Block {
-        let bytes: [u8; mem::size_of::<Self::Block>()] = slice.try_into().unwrap();
+        let bytes: [u8; mem::size_of::<u64>()] = slice.try_into().unwrap();
         unsafe { mem::transmute(bytes) }
     }
 

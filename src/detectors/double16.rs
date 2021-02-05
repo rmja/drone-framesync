@@ -64,7 +64,7 @@ impl<C: Comparator<u16>> Detector<u16> for Double16Detector<C> {
     const SYNCWORD: u16 = C::SYNCWORD;
     
     fn from_slice(slice: &[u8]) -> Self::Block {
-        let bytes: [u8; mem::size_of::<Self::Block>()] = slice.try_into().unwrap();
+        let bytes: [u8; mem::size_of::<u32>()] = slice.try_into().unwrap();
         unsafe { mem::transmute(bytes) }
     }
 

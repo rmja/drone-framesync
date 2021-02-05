@@ -36,30 +36,42 @@ impl<D: Detector<T>, T> BitStream<D, T> {
     pub fn detect(&mut self) -> impl Iterator<Item = (u8, Vec<u8>)> {
         // TODO: Figure out a way to do this generators to avoid the vector allocation.
         let mut matches = Vec::new();
-        let mut any_match = true;
-        while self.buf.len() > 0 && any_match {
-            any_match = false;
-            
-            let mut to_remove = self.buf.len() - 1;
+        while self.buf.len() > 0 {
             let (first, second) = self.buf.as_slices();
         
-            if let Some((m, blocks_to_remove)) = self.detect_next(first, second) {
+            // Test first section.
+            let to_remove = if let Some((m, blocks_before)) = self.detect_next(first, second) {
                 matches.push(m);
-                to_remove = blocks_to_remove;
-                any_match = true;
+
+                // Also remove the block in where the syncword was found to ensure that we do not re-detect the same syncword.
+                blocks_before + 1
             }
-            else if !second.is_empty() {
-                // Test wrap section
+            else if second.is_empty() {
+                // No more sections, remove all but the last item - it is not fully tested,
+                // as we need to scan from that item into the next arriving.
+                first.len() - 1
+            }
+            else {
+                // Test wrap section.
                 let wrap = [first[first.len() - 1], second[0]];
 
-                if let Some((m, blocks_to_remove)) = self.detect_next(&wrap, &second[1..]) {
+                if let Some((m, blocks_before)) = self.detect_next(&wrap, &second[1..]) {
                     matches.push(m);
-                    to_remove = blocks_to_remove;
-                    any_match = true;
-                }
-            }
 
-            if to_remove >= self.buf.len() {
+                    // Remove all blocks until wrap and maybe one more, to ensure that remove
+                    // the block with the detected syncword.
+                    first.len() + blocks_before
+                }
+                else {
+                    // Remove all items until wrap (there is still at least one more item available)
+                    first.len()
+                }
+            };
+
+            if to_remove == 0 {
+                break;
+            }
+            else if to_remove >= self.buf.len() {
                 self.buf.clear();
             }
             else {
@@ -79,10 +91,10 @@ impl<D: Detector<T>, T> BitStream<D, T> {
             let mut remaining = haystack.as_u8_slice()[byte_index..].to_vec();
             remaining.extend_from_slice(sequel.as_u8_slice());
 
-            // Remove as much from buf so that we will never find the same hit again
-            let blocks_to_remove = (position + size_of::<D::Block>() - 1) / size_of::<D::Block>();
+            // Find the number of blocks that was fully consumed before the match.
+            let blocks_before = position / size_of::<D::Block>();
 
-            Some(((bit_shifts, remaining), blocks_to_remove))
+            Some(((bit_shifts, remaining), blocks_before))
         }
         else {
             None
@@ -100,12 +112,9 @@ struct FrameReception {
 
 #[cfg(test)]
 mod tests {
-    use core::mem::size_of;
-
     use crate::detectors::cortexm4;
 
     use super::*;
-    use bitvec::prelude::*;
 
     #[test]
     fn detect_0_shifts() {
@@ -141,17 +150,66 @@ mod tests {
     }
 
     #[test]
-    fn detect_wrap_0_shifts() {
-        let mut bs = BitStream::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());        
-        let rx = &[0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff];
-        bs.extend(rx);
-        bs.buf.shrink_to_fit();
-
-        assert_eq!(None, bs.detect().next());
-
+    fn detect_match_before_wrap_0_shifts() {
+        let mut bs = BitStream::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
+        assert_eq!(7, bs.buf.capacity()); // It seems as if we can fit 8.
         bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.buf.drain(0..6);
+        bs.extend(&[0xff, 0xff, 0xff, 0xff]); // Insert in the last position before wrap
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]); // Insert in the first position after wrap
 
-        assert_ne!(0, bs.buf.as_slices().1.len(), "The buffer should wrap for the test to be significant");
+        assert_eq!(1, bs.buf.as_slices().1.len(), "The buffer should wrap for the test to be significant");
+
+        let mut iter = bs.detect();
+        assert_eq!(Some((0, vec![0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00])), iter.next());
+        assert_eq!(None, iter.next());
+    }
+
+    #[test]
+    fn detect_match_in_wrap_4_shifts() {
+        let mut bs = BitStream::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
+        assert_eq!(7, bs.buf.capacity()); // It seems as if we can fit 8.
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.buf.drain(0..6);
+        bs.extend(&[0x00, 0x00, 0x0f, 0xff]); // Insert in the last position before wrap
+        bs.extend(&[0xff, 0xff, 0xf0, 0x00]); // Insert in the first position after wrap
+
+        assert_eq!(1, bs.buf.as_slices().1.len(), "The buffer should wrap for the test to be significant");
+
+        let mut iter = bs.detect();
+        assert_eq!(Some((4, vec![0x0f, 0xff, 0xff, 0xff, 0xf0, 0x00])), iter.next());
+        assert_eq!(None, iter.next());
+    }
+
+    #[test]
+    fn detect_match_after_wrap_0_shifts() {
+        let mut bs = BitStream::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
+        assert_eq!(7, bs.buf.capacity()); // It seems as if we can fit 8.
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+        bs.buf.drain(0..6);
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]); // Insert in the last position before wrap
+        bs.extend(&[0xff, 0xff, 0xff, 0xff]); // Insert in the first position after wrap
+        bs.extend(&[0x00, 0x00, 0x00, 0x00]); // Insert in the first position after wrap
+
+        assert_eq!(2, bs.buf.as_slices().1.len(), "The buffer should wrap for the test to be significant");
 
         let mut iter = bs.detect();
         assert_eq!(Some((0, vec![0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00])), iter.next());

@@ -1,13 +1,12 @@
 #![feature(const_fn)]
 #![feature(const_impl_trait)]
-#![feature(const_generics)]
+// #![feature(const_generics)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(test)]
 #[macro_use]
 extern crate std;
 
-#[macro_use]
 extern crate alloc;
 
 pub mod comparators;
