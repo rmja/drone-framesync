@@ -13,5 +13,8 @@ Fast Frame Synchronization algorithms.
 [badges]
 maintenance = { status = "actively-developed" }
 
+[dependencies]
+ringbuf = "0.2"
+
 [dev-dependencies]
 bitvec = "0.20"
