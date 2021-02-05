@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{convert::TryInto, marker::PhantomData, mem};
 
 use crate::comparators::Comparator;
 
@@ -62,12 +62,17 @@ impl<C: Comparator<u16>> Double16Detector<C> {
 impl<C: Comparator<u16>> Detector<u16> for Double16Detector<C> {
     type Block = u32;
     const SYNCWORD: u16 = C::SYNCWORD;
+    
+    fn from_slice(slice: &[u8]) -> Self::Block {
+        let bytes: [u8; mem::size_of::<Self::Block>()] = slice.try_into().unwrap();
+        unsafe { mem::transmute(bytes) }
+    }
 
     fn position_in_blocks<I: Iterator<Item = Self::Block>>(&self, haystack: I) -> Option<usize> {
-        let mut blocks = haystack.enumerate();
+        let mut blocks = haystack;
 
         // Load the first 32 bit block.
-        let (_, block) = blocks.next()?;
+        let block = blocks.next()?;
         let mut current = Window {
             u32: WindowParts32 {
                 first: u32::from_be(block),
@@ -76,7 +81,8 @@ impl<C: Comparator<u16>> Detector<u16> for Double16Detector<C> {
         };
 
         // Iterate for each of the next 32 bit blocks one at a time.
-        for (index, block) in blocks {
+        let mut index = 0;
+        for block in blocks {
             let next = u32::from_be(block);
 
             current.u32.second = next;
@@ -84,11 +90,11 @@ impl<C: Comparator<u16>> Detector<u16> for Double16Detector<C> {
             // Search the first 16+16 bits of the 32 bit window, one at a time.
             for offset in 0..16 {
                 if C::is_match(unsafe { current.u16.first }) {
-                    return Some(32 * (index - 1) + offset);
+                    return Some(32 * index + offset);
                 }
 
                 if C::is_match(unsafe { current.u16.second }) {
-                    return Some(32 * (index - 1) + 16 + offset);
+                    return Some(32 * index + 16 + offset);
                 }
 
                 unsafe {
@@ -98,6 +104,18 @@ impl<C: Comparator<u16>> Detector<u16> for Double16Detector<C> {
 
             // Set "next" as "current" for the next iteration.
             current.u32.first = next;
+            index += 1;
+        }
+
+        // Search the first 16 bits of the last 32 bit window.
+        for offset in 0..16 {
+            if C::is_match(unsafe { current.u16.first }) {
+                return Some(32 * index + offset);
+            }
+
+            unsafe {
+                current.u32.first <<= 1;
+            }
         }
 
         None
@@ -106,7 +124,9 @@ impl<C: Comparator<u16>> Detector<u16> for Double16Detector<C> {
 
 #[cfg(test)]
 mod tests {
-    use crate::comparators::Exact16Comparator;
+    use core::mem::size_of;
+
+    use crate::{comparators::Exact16Comparator, sliceext::SliceExt};
 
     use super::*;
     use bitvec::prelude::*;
@@ -114,26 +134,51 @@ mod tests {
     #[test]
     fn position() {
         let detector = Double16Detector::<Exact16Comparator<0xFFFF>>::new();
-        let lengths = [4 * 8, 8 * 8, 12 * 8, 16 * 8, 20 * 8, 24 * 8, 28 * 8, 32 * 8];
 
-        for length in lengths.iter().copied() {
-            for position in 0..=length - 16 {
-                let mut haystack = bitvec::bitvec![Msb0, u8; 0; length];
+        for length in 1..10 {
+            let bits = length * size_of::<u32>() * 8;
+            for position in 0..bits - 16 {
+                let mut haystack = vec![0u32; length];
 
-                // Insert 16 bit syncword
-                for i in 0..16 {
-                    haystack.set(position + i, true);
+                {
+                    let bits = haystack.as_mut_u8_slice().view_bits_mut::<Msb0>();
+
+                    // Insert 16 bit syncword
+                    for i in 0..16 {
+                        bits.set(position + i, true);
+                    }
                 }
 
-                let asd = haystack.into_vec();
-
-                let (found, consumed) = unsafe { detector.position(haystack.as_raw_slice()) };
+                let found = detector.position_in_blocks(haystack.iter().copied());
 
                 println!("Found {:?} in {:?}", found, haystack);
 
                 assert_eq!(Some(position), found);
-                assert_eq!((length - 16)/8, consumed);
             }
+        }
+    }
+
+    #[test]
+    fn no_match_in_last_possible_position() {
+        let detector = Double16Detector::<Exact16Comparator<0xFFFF>>::new();
+        
+        for length in 1..10 {
+            let bits = length * size_of::<u32>() * 8;
+            let position = bits - 16;
+            let mut haystack = vec![0u32; length];
+
+            {
+                let bits = haystack.as_mut_u8_slice().view_bits_mut::<Msb0>();
+                
+                // Insert 16 bit syncword
+                for i in 0..16 {
+                    bits.set(position + i, true);
+                }
+            }
+
+            let found = detector.position_in_blocks(haystack.iter().copied());
+
+            assert_eq!(None, found);
         }
     }
 }

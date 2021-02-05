@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{convert::TryInto, marker::PhantomData, mem};
 
 use crate::comparators::Comparator;
 
@@ -42,6 +42,11 @@ impl<C: Comparator<u16>> Detector<u16> for Single16Detector<C> {
     type Block = u16;
     const SYNCWORD: u16 = C::SYNCWORD;
 
+    fn from_slice(slice: &[u8]) -> Self::Block {
+        let bytes: [u8; mem::size_of::<Self::Block>()] = slice.try_into().unwrap();
+        unsafe { mem::transmute(bytes) }
+    }
+
     fn position_in_blocks<I: Iterator<Item = Self::Block>>(&self, haystack: I) -> Option<usize> {
         let mut blocks = haystack;
 
@@ -77,43 +82,67 @@ impl<C: Comparator<u16>> Detector<u16> for Single16Detector<C> {
             index += 1;
         }
 
-        // Test the last block.
-        if C::is_match(unsafe { current.u16.first }) {
-            Some(16 * index - 16)
-        } else {
-            None
-        }
+        None
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use crate::comparators::Exact16Comparator;
+#[cfg(test)]
+mod tests {
+    use core::mem::size_of;
 
-//     use super::*;
-//     use bitvec::prelude::*;
+    use crate::{comparators::Exact16Comparator, sliceext::SliceExt};
 
-//     #[test]
-//     fn position() {
-//         let detector = Single16Detector::<Exact16Comparator<0xFFFF>>::new();
-//         let lengths = [2 * 8, 4 * 8, 6 * 8, 8 * 8, 10 * 8, 12 * 8, 14 * 8, 16 * 8];
+    use super::*;
+    use bitvec::prelude::*;
 
-//         for length in lengths.iter().copied() {
-//             for position in 0..=length - 16 {
-//                 let mut haystack = bitvec::bitvec![Msb0, u8; 0; length];
+    #[test]
+    fn position() {
+        let detector = Single16Detector::<Exact16Comparator<0xFFFF>>::new();
 
-//                 // Insert 16 bit syncword
-//                 for i in 0..16 {
-//                     haystack.set(position + i, true);
-//                 }
+        for length in 1..10 {
+            let bits = length * size_of::<u16>() * 8;
+            for position in 0..bits - 16 {
+                let mut haystack = vec![0u16; length];
 
-//                 let (found, consumed) = unsafe { detector.position(haystack.as_raw_slice()) };
+                {
+                    let bits = haystack.as_mut_u8_slice().view_bits_mut::<Msb0>();
+                    
+                    // Insert 16 bit syncword
+                    for i in 0..16 {
+                        bits.set(position + i, true);
+                    }
+                }
 
-//                 println!("Found {:?} in {:?}", found, haystack);
+                let found = detector.position_in_blocks(haystack.iter().copied());
 
-//                 assert_eq!(Some(position), found);
-//                 assert_eq!((length - 16)/8, consumed);
-//             }
-//         }
-//     }
-// }
+                println!("Found {:?} in {:?}", found, haystack);
+
+                assert_eq!(Some(position), found);
+            }
+        }
+    }
+
+    #[test]
+    fn no_match_in_last_possible_position() {
+        let detector = Single16Detector::<Exact16Comparator<0xFFFF>>::new();
+
+        for length in 1..10 {
+            let bits = length * size_of::<u16>() * 8;
+            let position = bits - 16;
+            let mut haystack = vec![0u16; length];
+
+            {
+                let bits = haystack.as_mut_u8_slice().view_bits_mut::<Msb0>();
+                
+                // Insert 16 bit syncword
+                for i in 0..16 {
+                    bits.set(position + i, true);
+                }
+            }
+
+            let found = detector.position_in_blocks(haystack.iter().copied());
+
+            assert_eq!(None, found);
+        }
+    }
+}
