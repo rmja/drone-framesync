@@ -112,6 +112,10 @@ struct FrameReception {
 
 #[cfg(test)]
 mod tests {
+    use core::cmp::min;
+
+    use bitvec::prelude::*;
+
     use crate::detectors::cortexm4;
 
     use super::*;
@@ -214,6 +218,48 @@ mod tests {
         let mut iter = bs.detect();
         assert_eq!(Some((0, vec![0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00])), iter.next());
         assert_eq!(None, iter.next());
+    }
+
+    #[test]
+    fn detect_sweep() {
+        for extend_before in 0..8 {
+            for drain_end in 0..8 {
+                for extend_after in 0..8 {
+                    for position in 0..=32 {
+                        let mut bs = SyncWindow::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
+
+                        for _ in 0..extend_before {
+                            bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+                        }
+
+                        bs.buf.drain(0..min(extend_before, drain_end));
+
+                        for _ in 0..extend_after {
+                            bs.extend(&[0x00, 0x00, 0x00, 0x00]);
+                        }
+
+                        let mut data = [0u8;12];
+                        {
+                            let bits = data.view_bits_mut::<Msb0>();
+
+                            // Insert 32 bit syncword
+                            for i in 0..32 {
+                                bits.set(position + i, true);
+                            }
+                        }
+                        bs.extend(&data);
+
+                        println!("{:?}", data);
+
+                        let mut iter = bs.detect();
+                        let m = iter.next().unwrap();
+                        assert_eq!(position % 8, m.0 as usize);
+                        assert!(m.1.len() >= 8);
+                        assert_eq!(None, iter.next());
+                    }
+                }
+            }
+        }
     }
 
     #[test]
