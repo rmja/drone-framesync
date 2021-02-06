@@ -11,7 +11,7 @@ extern crate alloc;
 
 pub mod comparators;
 pub mod detectors;
-mod bitstream;
+mod syncwindow;
 mod sliceext;
 
-pub use self::bitstream::BitStream;
+pub use self::syncwindow::SyncWindow;

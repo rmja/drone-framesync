@@ -4,13 +4,13 @@ use alloc::{collections::VecDeque, vec::Vec};
 
 use crate::{detectors::Detector, sliceext::SliceExt};
 
-pub struct BitStream<D: Detector<T>, T> {
+pub struct SyncWindow<D: Detector<T>, T> {
     detector: D,
     syncword_type: PhantomData<T>,
     buf: VecDeque<D::Block>,
 }
 
-impl<D: Detector<T>, T> BitStream<D, T> {
+impl<D: Detector<T>, T> SyncWindow<D, T> {
     pub fn new(detector: D) -> Self {
         Self {
             detector,
@@ -118,7 +118,7 @@ mod tests {
 
     #[test]
     fn detect_0_shifts() {
-        let mut bs = BitStream::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
+        let mut bs = SyncWindow::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
         let rx = &[0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00];
         bs.extend(rx);
 
@@ -129,7 +129,7 @@ mod tests {
 
     #[test]
     fn detect_1_shift() {
-        let mut bs = BitStream::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
+        let mut bs = SyncWindow::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
         let rx = &[0x00, 0x7f, 0xff, 0xff, 0xff, 0x80, 0x00, 0x00];
         bs.extend(rx);
 
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn detect_7_shift() {
-        let mut bs = BitStream::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
+        let mut bs = SyncWindow::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
         let rx = &[0x00, 0x01, 0xff, 0xff, 0xff, 0xFE, 0x00, 0x00];
         bs.extend(rx);
 
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn detect_match_before_wrap_0_shifts() {
-        let mut bs = BitStream::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
+        let mut bs = SyncWindow::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
         assert_eq!(7, bs.buf.capacity()); // It seems as if we can fit 8.
         bs.extend(&[0x00, 0x00, 0x00, 0x00]);
         bs.extend(&[0x00, 0x00, 0x00, 0x00]);
@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn detect_match_in_wrap_4_shifts() {
-        let mut bs = BitStream::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
+        let mut bs = SyncWindow::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
         assert_eq!(7, bs.buf.capacity()); // It seems as if we can fit 8.
         bs.extend(&[0x00, 0x00, 0x00, 0x00]);
         bs.extend(&[0x00, 0x00, 0x00, 0x00]);
@@ -195,7 +195,7 @@ mod tests {
 
     #[test]
     fn detect_match_after_wrap_0_shifts() {
-        let mut bs = BitStream::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
+        let mut bs = SyncWindow::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
         assert_eq!(7, bs.buf.capacity()); // It seems as if we can fit 8.
         bs.extend(&[0x00, 0x00, 0x00, 0x00]);
         bs.extend(&[0x00, 0x00, 0x00, 0x00]);
@@ -218,7 +218,7 @@ mod tests {
 
     #[test]
     fn hello() {
-        let mut bs = BitStream::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
+        let mut bs = SyncWindow::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
         let rx = &[0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00];
         bs.extend(rx);
 
