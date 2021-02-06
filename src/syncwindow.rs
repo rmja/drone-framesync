@@ -19,9 +19,9 @@ impl<D: Detector<T>, T> SyncWindow<D, T> {
         }
     }
 
-    pub fn extend(&mut self, blocks: &[u8]) {
-        let block_count = blocks.len() / size_of::<D::Block>();
-        let mut chunks = blocks.chunks_exact(size_of::<D::Block>());
+    pub fn extend(&mut self, bytes: &[u8]) {
+        let block_count = bytes.len() / size_of::<D::Block>();
+        let mut chunks = bytes.chunks_exact(size_of::<D::Block>());
 
         self.buf.reserve(block_count);
         
@@ -30,7 +30,7 @@ impl<D: Detector<T>, T> SyncWindow<D, T> {
             self.buf.push_back(block);
         }
 
-        assert_eq!(0, chunks.remainder().len());
+        assert_eq!(0, chunks.remainder().len(), "The number of bytes must be a multiple of the detector block size.");
     }
 
     pub fn detect(&mut self) -> impl Iterator<Item = (u8, Vec<u8>)> {
