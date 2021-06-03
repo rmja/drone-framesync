@@ -4,10 +4,10 @@ use alloc::vec::Vec;
 
 pub struct FrameBuffer {
     /// The frame receive buffer. This buffer is not bit aligned.
-    receive_buffer: Vec<u8>,
+    pub receive_buffer: Vec<u8>,
     /// The number if bit shifts (0..7) that needs to be applied to the receive_buffer to make it aligned.
-    shifts: u8,
-    frame_len: Option<usize>,
+    pub shifts: u8,
+    pub frame_len: Option<usize>,
 }
 
 impl FrameBuffer {
@@ -90,7 +90,6 @@ mod tests {
     fn receptions() {
         let mut bs = SyncWindow::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
         let rx = &[0x00, 0xff, 0xff, 0xff, 0xff, 0x01, 0x00, 0x00];
-        bs.extend(rx);
 
         let mut ongoing_receptions: Vec<FrameBuffer> = vec![];
 
@@ -99,6 +98,7 @@ mod tests {
             rec.receive_buffer.extend_from_slice(rx);
         }
 
+        bs.extend(rx);
         while let Some((shifts, remainder)) = bs.detect().next() {
             ongoing_receptions.push(FrameBuffer {
                 receive_buffer: remainder,
