@@ -109,13 +109,6 @@ impl<D: Detector<T>, T> SyncWindow<D, T> {
 }
 
 
-struct FrameReception {
-    buffer: Vec<u8>,
-    shifts: u8,
-    frame_len: Option<usize>,
-}
-
-
 #[cfg(test)]
 mod tests {
     use core::cmp::min;
@@ -277,54 +270,5 @@ mod tests {
                 }
             }
         }
-    }
-
-    #[test]
-    fn hello() {
-        let mut bs = SyncWindow::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
-        let rx = &[0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00];
-        bs.extend(rx);
-
-        let mut receptions: Vec<FrameReception> = vec![];
-
-        // Add the received bytes into all concurrent receiptions.
-        for rec in receptions.iter_mut() {
-            rec.buffer.extend_from_slice(rx);
-        }
-
-        while let Some((shifts, remainder)) = bs.detect().next() {
-            receptions.push(FrameReception {
-                buffer: remainder,
-                shifts,
-                frame_len: None,
-            });
-        }
-
-        // for handle in receptions.iter_mut() {
-        //     if let Some(frame_length) = handle.frame_len {
-        //         if handle.buffer.len() > frame_length {
-        //             let shifted = handle.buffer;
-        //             // Receive
-        //         }
-        //     }
-        //     else if handle.buffer.len() > 4 + 1 {
-        //         // We have at least the syncword and the length
-        //         // Derive the length
-        //         handle.frame_length = Some(17);
-        //     }
-        // }
-        
-
-        // let mut asd = [0u64, 1u64];
-        // asd.align_to()
-
-        // let mut asd2 = unsafe { core::slice::from_raw_parts_mut(asd.as_mut_ptr() as *mut u8, asd.len() * size_of::<u64>()) };
-        // let view = asd2.view_bits_mut::<Msb0>();
-
-        // view.set(0, true);
-
-        // println!("{:?}", view);
-        // assert_eq!(0x80, asd2[0]);
-
     }
 }

@@ -10,7 +10,9 @@ extern crate alloc;
 
 pub mod comparators;
 pub mod detectors;
+mod framebuffer;
 mod syncwindow;
 mod sliceext;
 
+pub use self::framebuffer::FrameBuffer;
 pub use self::syncwindow::SyncWindow;
