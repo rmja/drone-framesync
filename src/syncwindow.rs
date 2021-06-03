@@ -4,6 +4,9 @@ use alloc::{collections::VecDeque, vec::Vec};
 
 use crate::{detectors::Detector, sliceext::SliceExt};
 
+/// An observation window that holds a series of unaligned bits. Bits can be
+/// added to the window by extending it, and consumed from the window by
+/// running the detector.
 pub struct SyncWindow<D: Detector<T>, T> {
     detector: D,
     syncword_type: PhantomData<T>,
@@ -11,6 +14,7 @@ pub struct SyncWindow<D: Detector<T>, T> {
 }
 
 impl<D: Detector<T>, T> SyncWindow<D, T> {
+    /// Create a new `SyncWindow`.
     pub fn new(detector: D) -> Self {
         Self {
             detector,
@@ -19,6 +23,7 @@ impl<D: Detector<T>, T> SyncWindow<D, T> {
         }
     }
 
+    /// Add a series of bytes to be seen by the window.
     pub fn extend(&mut self, bytes: &[u8]) {
         let block_count = bytes.len() / size_of::<D::Block>();
         let mut chunks = bytes.chunks_exact(size_of::<D::Block>());
@@ -33,8 +38,9 @@ impl<D: Detector<T>, T> SyncWindow<D, T> {
         assert_eq!(0, chunks.remainder().len(), "The number of bytes must be a multiple of the detector block size.");
     }
 
+    /// Run the detector on the current window and trim it.
     pub fn detect(&mut self) -> impl Iterator<Item = (u8, Vec<u8>)> {
-        // TODO: Figure out a way to do this generators to avoid the vector allocation.
+        // TODO: Figure out a way to do this with generators to avoid the vector allocation.
         let mut matches = Vec::new();
         while self.buf.len() > 0 {
             let (first, second) = self.buf.as_slices();
@@ -121,7 +127,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn detect_0_shifts() {
+    fn detect_0_shifts_pos0() {
+        let mut bs = SyncWindow::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
+        let rx = &[0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00];
+        bs.extend(rx);
+
+        let mut iter = bs.detect();
+        assert_eq!(Some((0, vec![0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00])), iter.next());
+        assert_eq!(None, iter.next());
+    }
+
+    #[test]
+    fn detect_0_shifts_pos1() {
         let mut bs = SyncWindow::new(cortexm4::sync32_tol0::<0xFFFFFFFF>());
         let rx = &[0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00];
         bs.extend(rx);
