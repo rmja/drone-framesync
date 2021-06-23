@@ -25,6 +25,22 @@ impl FrameBuffer {
         }
     }
 
+    pub fn aligned_len(&self) -> usize {
+        let len = self.receive_buffer.len();
+        if self.shifts == 0 {
+            // No shifts needs to be made in the receive buffer
+            len
+        }
+        else if len > 0 {
+            // Shifts needs to be made. The aligned result will be one byte shorter than the receive buffer
+            len - 1
+        }
+        else {
+            // The receive buffer is empty
+            0
+        }
+    }
+
     pub fn get_aligned(&self) -> Vec<u8> {
         self.get_aligned_part(0..self.frame_len.unwrap())
     }
