@@ -1,4 +1,4 @@
-#![feature(const_fn)]
+#![feature(const_fn_trait_bound)]
 #![feature(const_impl_trait)]
 #![cfg_attr(not(feature = "std"), no_std)]
 

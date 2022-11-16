@@ -2,7 +2,7 @@
 name = "drone-framesync"
 version = "0.1.0"
 authors = ["Rasmus Melchior Jacobsen <rmja@laesoe.org>"]
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/rmja/drone-framesync"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
